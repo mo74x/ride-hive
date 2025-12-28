@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # 🐘 PostgreSQL with PostGIS extension
+  postgres:
+    image: postgis/postgis:15-3.3  # Crucial: Standard 'postgres' image lacks Geo features
+    container_name: ride_hive_db
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: complex_password
+      POSTGRES_DB: ride_hive
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # ⚡ Redis for high-speed Geo caching
+  redis:
+    image: redis:alpine
+    container_name: ride_hive_redis
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes # Persist data so we don't lose it on restart
+    volumes:
+      - redis_data:/data
+
+  # 🛠️ Optional: PgAdmin to view your DB graphically
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ride_hive_pgadmin
+    ports:
+      - '5050:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  redis_data:

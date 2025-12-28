@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+  // Enable this to visualize relations if needed
+  previewFeatures = ["postgresqlExtensions"] 
+}
+
+datasource db {
+  provider = "postgresql"
+  extensions = [postgis] // Tells Prisma we are using PostGIS
+}
+
+// 👤 Users (Riders & Drivers)
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  rating    Float    @default(5.0)
+  createdAt DateTime @default(now())
+
+  driverProfile DriverProfile?
+  tripsAsRider  Trip[]         @relation("RiderTrips")
+}
+
+// 🚕 Driver Specifics
+model DriverProfile {
+  id        String  @id @default(uuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id])
+  isOnline  Boolean @default(false)
+
+  tripsAsDriver Trip[]
+}
+
+// 🗺️ The Trip (State Machine)
+model Trip {
+  id        String     @id @default(uuid())
+  status    TripStatus @default(SEARCHING)
+  price     Decimal    @db.Decimal(10, 2)
+
+  riderId   String
+  rider     User       @relation("RiderTrips", fields: [riderId], references: [id])
+
+  driverId  String?
+  driver    DriverProfile? @relation(fields: [driverId], references: [id])
+
+  // 📍 Location Data 
+  // We store lat/lng as raw floats for easy API access
+  origin_lat       Float
+  origin_lng       Float
+  dest_lat         Float
+  dest_lng         Float
+
+  // We will add raw Geometry columns via SQL migration later for spatial queries
+
+  startedAt   DateTime?
+  completedAt DateTime?
+}
+
+enum TripStatus {
+  SEARCHING
+  OFFERED
+  ACCEPTED
+  ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
